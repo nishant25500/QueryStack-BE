@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/QueryStack-BE.iml" filepath="$PROJECT_DIR$/.idea/QueryStack-BE.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/services/question-service/QueryStack-BE.services.question-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/services/question-service/QueryStack-BE.services.question-service.main.iml" />
     </modules>
   </component>
 </project>
