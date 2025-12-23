@@ -17,10 +17,10 @@ public class BaseModel {
     private String id;
 
     @CreatedDate
-    private Instant createdAt;
+    private Instant createdAt = Instant.now();
 
     @LastModifiedDate
-    private Instant updatedAt;
+    private Instant updatedAt = Instant.now();
 
 
 }

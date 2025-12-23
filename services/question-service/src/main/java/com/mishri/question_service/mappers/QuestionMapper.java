@@ -12,7 +12,9 @@ public interface QuestionMapper {
     //request -> entity
     public Question toModel(QuestionRequestDTO questionRequestDTO);
 
-//    entity -> response
+    //entity -> response
     public QuestionResponseDTO toDto(Question question);
-
 }
+
+
+//Note: we have to implement static methods in an interface
