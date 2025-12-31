@@ -1,5 +1,6 @@
 package com.mishri.question_service.services;
 
+import com.mishri.question_service.dto.CursorPageResponse;
 import com.mishri.question_service.dto.QuestionRequestDTO;
 import com.mishri.question_service.dto.QuestionResponseDTO;
 import com.mishri.question_service.mappers.QuestionMapper;
@@ -17,16 +18,16 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 
 @Service
-//@RequiredArgsConstructor //this is doing constructor injection
+@RequiredArgsConstructor //this is doing constructor injection
 public class QuestionServiceImpl implements IQuestionService {
 
     private final QuestionRepository questionRepository;
     private final QuestionMapper questionMapper;
 
-    QuestionServiceImpl(QuestionRepository repo,QuestionMapper _questionMapper){
-        this.questionMapper = _questionMapper;
-        this.questionRepository = repo;
-    }
+//    QuestionServiceImpl(QuestionRepository repo,QuestionMapper _questionMapper){
+//        this.questionMapper = _questionMapper;
+//        this.questionRepository = repo;
+//    }
 
     @Override
     public Mono<QuestionResponseDTO> createQuestion(QuestionRequestDTO request) {
@@ -53,22 +54,30 @@ public class QuestionServiceImpl implements IQuestionService {
     }
 
     @Override
-    public Flux<QuestionResponseDTO> getAllQuestions(String cursor,int pageSize){
+    public Mono<CursorPageResponse<QuestionResponseDTO>> getAllQuestions(String cursor, int pageSize){
         //cursor based pagination
+        Flux<Question> questionFlux;
 
-        Pageable pageable = PageRequest.of(0,pageSize, Sort.by("createdAt").descending());  //we only want initial set of records from where cond.
+        Pageable pageable = PageRequest.of(0,pageSize+1, Sort.by("createdAt").descending());  //we only want initial set of records from where cond.
 
         if(CursorUtils.isValidCursor(cursor)){
             Instant cursorTimeStamp = CursorUtils.parseCursor(cursor);
-            return questionRepository.findByCreatedAtLessThanOrderByCreatedAtDesc(cursorTimeStamp,pageable)
-                    .map(questionMapper::toDto)
-                    .doOnError(error -> System.out.println("Error searching question"+error))
-                    .doOnComplete(() -> System.out.println("Successfully question searched"));
+            questionFlux = questionRepository.findByCreatedAtLessThanOrderByCreatedAtDesc(cursorTimeStamp,pageable);
         }else{
-            return questionRepository.findAllByOrderByCreatedAtDesc(pageable)
-                    .map(questionMapper::toDto)
-                    .doOnError(error -> System.out.println("Error searching question"+error))
-                    .doOnComplete(() -> System.out.println("Successfully question searched"));
+            questionFlux = questionRepository.findAllByOrderByCreatedAtDesc(pageable);
         }
+
+        return questionFlux.map(questionMapper::toDto)
+                .collectList()
+                .map(list -> {
+                    boolean hasNext = list.size() > pageSize;
+
+                    if(hasNext){
+                        list = list.subList(0,pageSize);
+                    }
+
+                    String nextCursor = hasNext ? list.get(list.size()-1).getCreatedAt().toString() : null;
+                    return new CursorPageResponse<>(list, nextCursor, hasNext);
+                });
     }
 }

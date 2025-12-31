@@ -1,5 +1,6 @@
 package com.mishri.question_service.controllers;
 
+import com.mishri.question_service.dto.CursorPageResponse;
 import com.mishri.question_service.dto.QuestionRequestDTO;
 import com.mishri.question_service.dto.QuestionResponseDTO;
 import com.mishri.question_service.services.IQuestionService;
@@ -33,12 +34,12 @@ public class QuestionController {
     }
 
     @GetMapping("/all")
-    public Flux<QuestionResponseDTO> getAllQuestions(
+    public Mono<CursorPageResponse<QuestionResponseDTO>> getAllQuestions(
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "10") int pageSize
     ){
         return questionService.getAllQuestions(cursor,pageSize)
-                .doOnComplete(() -> System.out.println("Questions fetched successfully"))
+                .doOnSuccess(r -> System.out.println("Questions fetched successfully"))
                 .doOnError(error -> System.out.println("Error fetching questions" + error));
     }
 

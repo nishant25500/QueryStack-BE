@@ -14,4 +14,8 @@ public class QuestionResponseDTO {
     private String title;
     private String content;
     private Instant createdAt;
+
+//    public Instant getCreatedAt() {
+//        return createdAt;
+//    }
 }
