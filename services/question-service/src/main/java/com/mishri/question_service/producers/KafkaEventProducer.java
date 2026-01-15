@@ -1,0 +1,23 @@
+package com.mishri.question_service.producers;
+
+import com.mishri.question_service.config.KafkaConfig;
+import com.mishri.question_service.events.ViewCountEvent;
+import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class KafkaEventProducer {
+
+    private KafkaTemplate<String,Object> kafkaTemplate;
+
+    public void publishViewCountEvent(ViewCountEvent viewCountEvent){
+        kafkaTemplate.send(KafkaConfig.TOPIC_NAME,viewCountEvent.getTargetId(),viewCountEvent)
+                .whenComplete((result,err) -> {
+                    if(err != null){
+                        System.out.println("Error publishing view count event: "+err.getMessage());
+                    }
+                });
+    }
+}

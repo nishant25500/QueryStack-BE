@@ -30,7 +30,9 @@ public class QuestionController {
 
     @GetMapping("/{id}")
     public Mono<QuestionResponseDTO> getQuestionById(@PathVariable String id){
-        throw new UnsupportedOperationException("Not supported op");
+        return questionService.getQuestionById(id)
+                .doOnSuccess(r -> System.out.println("Questions fetched successfully"))
+                .doOnError(error -> System.out.println("Error fetching questions" + error));
     }
 
     @GetMapping("/all")

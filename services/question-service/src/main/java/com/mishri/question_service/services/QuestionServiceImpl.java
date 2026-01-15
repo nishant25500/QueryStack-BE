@@ -3,8 +3,10 @@ package com.mishri.question_service.services;
 import com.mishri.question_service.dto.CursorPageResponse;
 import com.mishri.question_service.dto.QuestionRequestDTO;
 import com.mishri.question_service.dto.QuestionResponseDTO;
+import com.mishri.question_service.events.ViewCountEvent;
 import com.mishri.question_service.mappers.QuestionMapper;
 import com.mishri.question_service.models.Question;
+import com.mishri.question_service.producers.KafkaEventProducer;
 import com.mishri.question_service.repositories.QuestionRepository;
 import com.mishri.question_service.utils.CursorUtils;
 import lombok.RequiredArgsConstructor;
@@ -23,11 +25,8 @@ public class QuestionServiceImpl implements IQuestionService {
 
     private final QuestionRepository questionRepository;
     private final QuestionMapper questionMapper;
+    private final KafkaEventProducer kafkaEventProducer;
 
-//    QuestionServiceImpl(QuestionRepository repo,QuestionMapper _questionMapper){
-//        this.questionMapper = _questionMapper;
-//        this.questionRepository = repo;
-//    }
 
     @Override
     public Mono<QuestionResponseDTO> createQuestion(QuestionRequestDTO request) {
@@ -79,5 +78,19 @@ public class QuestionServiceImpl implements IQuestionService {
                     String nextCursor = hasNext ? list.get(list.size()-1).getCreatedAt().toString() : null;
                     return new CursorPageResponse<>(list, nextCursor, hasNext);
                 });
+    }
+
+    @Override
+    public Mono<QuestionResponseDTO> getQuestionById(String id){
+
+        Mono<Question> questionMono = questionRepository.findById(id);
+
+        return questionMono.map(questionMapper::toDto)
+                .doOnSuccess(res ->{
+                    System.out.println("Question fetched successfully: "+res);
+                    ViewCountEvent viewCountEvent = new ViewCountEvent(id,"question",Instant.now());
+                    kafkaEventProducer.publishViewCountEvent(viewCountEvent);
+                })
+                .doOnError(err -> System.out.println("Error fetching question: " + err));
     }
 }
