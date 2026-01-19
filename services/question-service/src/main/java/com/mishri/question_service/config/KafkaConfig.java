@@ -52,7 +52,7 @@ public class KafkaConfig {
         configProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.example.demo.events");
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.mishri.question_service.events");
 
         return new DefaultKafkaConsumerFactory<>(configProps);
     }
