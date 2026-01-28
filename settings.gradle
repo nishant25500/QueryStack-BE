@@ -1,3 +1,4 @@
 rootProject.name = 'QueryStack-BE'
 
 include 'services:question-service'
+include 'services:auth-service'
