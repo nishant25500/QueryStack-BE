@@ -1,6 +1,7 @@
 package com.mishri.auth_service.config;
 
 import com.mishri.auth_service.config.security.JwtAuthFilter;
+import com.mishri.auth_service.services.CustomUserDetailsService;
 import com.mishri.auth_service.services.UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,19 +24,21 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final UserService userService;
+    private final CustomUserDetailsService userDetailsService;
     private final CustomAuthEntryPoint customAuthEntryPoint;
     private final JwtAuthFilter jwtAuthenticationFilter;
+    private final PasswordEncoder passwordEncoder;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder();
+//    }
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authprovider = new DaoAuthenticationProvider(userService);
-        authprovider.setPasswordEncoder(passwordEncoder());
+        DaoAuthenticationProvider authprovider = new DaoAuthenticationProvider();
+        authprovider.setUserDetailsService(userDetailsService);
+        authprovider.setPasswordEncoder(passwordEncoder);
         return authprovider;
     }
 

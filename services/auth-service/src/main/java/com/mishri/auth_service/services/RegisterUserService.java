@@ -2,6 +2,7 @@ package com.mishri.auth_service.services;
 
 import com.mishri.auth_service.entity.Role;
 import com.mishri.auth_service.entity.User;
+import com.mishri.auth_service.exception.UserAlreadyExistsException;
 import com.mishri.auth_service.repositories.UserRepository;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class RegisterUserService {
 
     public User registerUser(String email, String password){
         if(userRepository.existsByEmail(email)){
-            throw new RuntimeException("User already exists");
+            throw new UserAlreadyExistsException("User already exists");
         }
 
         User newUser = new User();

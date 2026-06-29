@@ -1,4 +1,4 @@
-package com.mishri.auth_service.dto;
+package com.mishri.auth_service.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -20,8 +20,8 @@ public class LoginRequestDTO {
 //    @Size(min=5 , max = 15, message = "Username must be between 5 and 15 char")
 ////    private String username;
 
-    @NotBlank(message = "Email is required")
-    @Email
+    @NotBlank(message = "Email is required") //Rejects null, empty and whitespace-only strings.
+    @Email(message = "Invalid email format")
     private String email;
 
     @NotBlank(message = "Password is required")

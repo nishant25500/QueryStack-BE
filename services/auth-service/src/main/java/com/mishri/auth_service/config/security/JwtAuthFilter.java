@@ -2,6 +2,7 @@ package com.mishri.auth_service.config.security;
 
 import java.io.IOException;
 
+import com.mishri.auth_service.services.CustomUserDetailsService;
 import com.mishri.auth_service.services.UserService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 public class JwtAuthFilter extends OncePerRequestFilter{
 
     private final JwtUtil jwtUtil;
-    private final UserService userService;
+    private final CustomUserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -53,7 +54,7 @@ public class JwtAuthFilter extends OncePerRequestFilter{
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
-                UserDetails userDetails = userService.loadUserByUsername(email);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                 log.info("User details loaded successfully: {}", userDetails.getUsername());
 

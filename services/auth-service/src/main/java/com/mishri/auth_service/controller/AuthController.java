@@ -1,27 +1,19 @@
 package com.mishri.auth_service.controller;
 
-import com.mishri.auth_service.config.security.JwtUtil;
-import com.mishri.auth_service.dto.LoginRequestDTO;
-import com.mishri.auth_service.dto.RegisterRequestDTO;
-import com.mishri.auth_service.entity.Role;
+import com.mishri.auth_service.dto.request.LoginRequestDTO;
+import com.mishri.auth_service.dto.request.RegisterRequestDTO;
+import com.mishri.auth_service.dto.response.ApiResponse;
+import com.mishri.auth_service.dto.response.AuthenticationResponseDTO;
+import com.mishri.auth_service.dto.response.RegistrationResponseDTO;
 import com.mishri.auth_service.entity.User;
-import com.mishri.auth_service.services.RegisterUserService;
+import com.mishri.auth_service.mapper.AuthenticationMapper;
+import com.mishri.auth_service.services.AuthenticationService;
 import com.mishri.auth_service.services.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.support.BeanDefinitionDsl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Collection;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -29,40 +21,46 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final UserService userService;
-
-    private final JwtUtil jwtUtil;
-
-    private final AuthenticationManager authenticationManager;
-
-    private final RegisterUserService registerUserService;
+    private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegisterRequestDTO registerRequestDTO){
-        User user = registerUserService.registerUser(registerRequestDTO.getEmail(),registerRequestDTO.getPassword());
-        return ResponseEntity.ok(user);
+    public ResponseEntity<ApiResponse<RegistrationResponseDTO>> registerUser(
+            @Valid @RequestBody RegisterRequestDTO request) {
+
+        User user = userService.registerUser(
+                request.getEmail(),
+                request.getPassword()
+        );
+
+        RegistrationResponseDTO response =
+                AuthenticationMapper.toRegistrationResponseDTO(user);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                        ApiResponse.<RegistrationResponseDTO>builder()
+                                .success(true)
+                                .message("User registered successfully")
+                                .data(response)
+                                .build()
+                );
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody LoginRequestDTO loginRequestDTO){
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(),loginRequestDTO.getPassword())
+    public ResponseEntity<ApiResponse<AuthenticationResponseDTO>> loginUser(
+            @Valid @RequestBody LoginRequestDTO request) {
+
+        AuthenticationResponseDTO response =
+                authenticationService.login(
+                        request.getEmail(),
+                        request.getPassword()
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.<AuthenticationResponseDTO>builder()
+                        .success(true)
+                        .message("Login successful")
+                        .data(response)
+                        .build()
         );
-
-        UserDetails userDetails = userService.loadUserByUsername(loginRequestDTO.getEmail());
-
-//        Set<Role> roles = userDetails.getAuthorities().stream().map(auth -> Role.valueOf(auth.getAuthority())).collect(Collectors.toSet());
-
-        Set<Role> roles = userDetails.getAuthorities()
-                .stream()
-                .map(auth -> auth.getAuthority().replace("ROLE_", ""))
-                .map(Role::valueOf)
-                .collect(Collectors.toSet());
-
-
-        String token = jwtUtil.generateToken(
-                userDetails.getUsername(),
-                roles);
-
-        return ResponseEntity.ok(token);
     }
 }

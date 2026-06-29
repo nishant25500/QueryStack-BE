@@ -1,46 +1,47 @@
 package com.mishri.auth_service.services;
 
-import java.util.Collection;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import com.mishri.auth_service.entity.Role;
 import com.mishri.auth_service.entity.User;
+import com.mishri.auth_service.exception.UserAlreadyExistsException;
 import com.mishri.auth_service.repositories.UserRepository;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-
-import lombok.RequiredArgsConstructor;
-
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class UserService implements UserDetailsService {
+public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Registers a new user.
+     */
+    public User registerUser(String email, String password) {
 
-    @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        if (userRepository.existsByEmail(email)) {
+            throw new UserAlreadyExistsException("User already exists");
+        }
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .authorities(mapRolesToAuthorities(user))
+        User user = User.builder()
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .roles(Set.of(Role.USER))
                 .build();
+
+        return userRepository.save(user);
     }
 
-    private Collection<? extends GrantedAuthority> mapRolesToAuthorities(User user) {
-        return user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
-                .collect(Collectors.toList());
-    }
+    /**
+     * Returns user by email.
+     */
+    public User findByEmail(String email) {
 
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
 }

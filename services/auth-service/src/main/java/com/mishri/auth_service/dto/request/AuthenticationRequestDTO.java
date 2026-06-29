@@ -1,4 +1,4 @@
-package com.mishri.auth_service.dto;
+package com.mishri.auth_service.dto.request;
 
 
 import jakarta.validation.constraints.NotBlank;
