@@ -18,4 +18,10 @@ public interface IQuestionService {
     public Mono<CursorPageResponse<QuestionResponseDTO>> getAllQuestions(String cursor, int pageSize);
 
     public Mono<QuestionResponseDTO> getQuestionById(String id);
+
+    public Mono<QuestionResponseDTO> updateQuestion(
+            String id,
+            QuestionRequestDTO request,
+            String email
+    );
 }

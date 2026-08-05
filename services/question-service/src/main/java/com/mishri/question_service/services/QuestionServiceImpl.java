@@ -4,6 +4,7 @@ import com.mishri.question_service.dto.CursorPageResponse;
 import com.mishri.question_service.dto.QuestionRequestDTO;
 import com.mishri.question_service.dto.QuestionResponseDTO;
 import com.mishri.question_service.events.ViewCountEvent;
+import com.mishri.question_service.exception.QuestionAccessDeniedException;
 import com.mishri.question_service.exception.QuestionNotFoundException;
 import com.mishri.question_service.mappers.QuestionMapper;
 import com.mishri.question_service.models.Question;
@@ -119,5 +120,38 @@ public class QuestionServiceImpl implements IQuestionService {
                 .doOnError(error ->
                         log.error("Failed to fetch question {}", id, error)
                 );
+    }
+
+    @Override
+    public Mono<QuestionResponseDTO> updateQuestion(
+            String id,
+            QuestionRequestDTO request,
+            String email
+    ) {
+
+        return questionRepository.findById(id)
+                .switchIfEmpty(
+                        Mono.error(new QuestionNotFoundException("Question not found"))
+                )
+                .flatMap(question -> {
+
+                    if (!question.getCreatedBy().equals(email)) {
+                        return Mono.error(
+                                new QuestionAccessDeniedException(
+                                        "You are not allowed to edit this question."
+                                )
+                        );
+                    }
+
+                    question.setTitle(request.getTitle());
+                    question.setContent(request.getContent());
+
+                    return questionRepository.save(question);
+                })
+                .map(questionMapper::toDto)
+                .doOnSuccess(q ->
+                        log.info("Question {} updated successfully", q.getId()))
+                .doOnError(e ->
+                        log.error("Failed to update question {}", id, e));
     }
 }

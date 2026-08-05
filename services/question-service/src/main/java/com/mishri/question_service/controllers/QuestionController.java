@@ -138,4 +138,27 @@ public class QuestionController {
     ){
         throw new UnsupportedOperationException("Not supported op");
     }
+
+    @PutMapping("/{id}")
+    public Mono<ResponseEntity<ApiResponse<QuestionResponseDTO>>> updateQuestion(
+            @PathVariable String id,
+            @Valid @RequestBody QuestionRequestDTO request,
+            Authentication authentication
+    ) {
+
+        return questionService.updateQuestion(
+                        id,
+                        request,
+                        authentication.getName()
+                )
+                .map(response ->
+                        ResponseEntity.ok(
+                                ApiResponse.<QuestionResponseDTO>builder()
+                                        .success(true)
+                                        .message("Question updated successfully")
+                                        .data(response)
+                                        .build()
+                        )
+                );
+    }
 }
