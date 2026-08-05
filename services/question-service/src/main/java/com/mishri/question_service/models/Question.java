@@ -24,5 +24,7 @@ public class Question extends BaseModel {
 
     private Integer views;
 
+    private String createdBy; // email or userId from JWT
+
 
 }

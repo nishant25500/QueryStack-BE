@@ -4,12 +4,14 @@ import com.mishri.question_service.dto.CursorPageResponse;
 import com.mishri.question_service.dto.QuestionRequestDTO;
 import com.mishri.question_service.dto.QuestionResponseDTO;
 import com.mishri.question_service.events.ViewCountEvent;
+import com.mishri.question_service.exception.QuestionNotFoundException;
 import com.mishri.question_service.mappers.QuestionMapper;
 import com.mishri.question_service.models.Question;
 import com.mishri.question_service.producers.KafkaEventProducer;
 import com.mishri.question_service.repositories.QuestionRepository;
 import com.mishri.question_service.utils.CursorUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,6 +21,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor //this is doing constructor injection
 public class QuestionServiceImpl implements IQuestionService {
@@ -29,25 +32,36 @@ public class QuestionServiceImpl implements IQuestionService {
 
 
     @Override
-    public Mono<QuestionResponseDTO> createQuestion(QuestionRequestDTO request) {
+    public Mono<QuestionResponseDTO> createQuestion(
+            QuestionRequestDTO request,
+            String email
+    ) {
         Question question = questionMapper.toModel(request);
-        Mono<Question> questionMono = questionRepository.save(question);  //this publisher
-        Mono<QuestionResponseDTO> response = questionMono.map(questionMapper::toDto)  //subscriber
-                .doOnSuccess(res -> System.out.println("Question created successfully" + res ))
-                .doOnError(error -> System.out.println("Error creating question" + error));
-        return response;
+        question.setCreatedBy(email);
+        question.setViews(0);
+
+        log.info("Creating question for user {}", email);
+
+        return questionRepository.save(question)
+                .map(questionMapper::toDto)
+                .doOnSuccess(q ->
+                        log.info("Question {} created successfully", q.getId()))
+                .doOnError(e ->
+                        log.error("Failed to create question", e));
     }
+
+
 
     @Override
     public Flux<QuestionResponseDTO> searchQuestion(String searchTerm, int pageNumber, int pageSize){
         //limit and offset based pagination
 
-        Pageable pageable = PageRequest.of(pageNumber,pageSize);
+        Pageable pageable = PageRequest.of(pageNumber,pageSize,Sort.by("createdAt").descending());
 
         Flux<QuestionResponseDTO> response = questionRepository.findByTitleOrContentContainingIgnoreCase(searchTerm,pageable)
                 .map(questionMapper::toDto)
-                .doOnError(error -> System.out.println("Error searching question"+error))
-                .doOnComplete(() -> System.out.println("Successfully question searched"));
+                .doOnError(error -> log.error("Error searching question",error))
+                .doOnComplete(() -> log.info("Successfully question searched"));
 
         return response;
     }
@@ -59,15 +73,22 @@ public class QuestionServiceImpl implements IQuestionService {
 
         Pageable pageable = PageRequest.of(0,pageSize+1, Sort.by("createdAt").descending());  //we only want initial set of records from where cond.
 
+        log.info(
+                "Fetching questions. Cursor={}, PageSize={}",
+                cursor,
+                pageSize
+        );
+
         if(CursorUtils.isValidCursor(cursor)){
-            Instant cursorTimeStamp = CursorUtils.parseCursor(cursor);
-            questionFlux = questionRepository.findByCreatedAtLessThanOrderByCreatedAtDesc(cursorTimeStamp,pageable);
+            Instant cursorTimestamp = CursorUtils.parseCursor(cursor);
+            questionFlux = questionRepository.findByCreatedAtLessThanOrderByCreatedAtDesc(cursorTimestamp,pageable);
         }else{
             questionFlux = questionRepository.findAllByOrderByCreatedAtDesc(pageable);
         }
 
         return questionFlux.map(questionMapper::toDto)
                 .collectList()
+                .doOnSuccess(page -> log.info("Questions fetched successfully"))
                 .map(list -> {
                     boolean hasNext = list.size() > pageSize;
 
@@ -83,14 +104,20 @@ public class QuestionServiceImpl implements IQuestionService {
     @Override
     public Mono<QuestionResponseDTO> getQuestionById(String id){
 
-        Mono<Question> questionMono = questionRepository.findById(id);
+        return questionRepository.findById(id)
+                .switchIfEmpty(
+                        Mono.error(new QuestionNotFoundException("Question not found"))
+                )
+                .map(questionMapper::toDto)
+                .doOnSuccess(question -> {
+                    log.info("Question fetched successfully: {}", question.getId());
 
-        return questionMono.map(questionMapper::toDto)
-                .doOnSuccess(res ->{
-                    System.out.println("Question fetched successfully: "+res);
-                    ViewCountEvent viewCountEvent = new ViewCountEvent(id,"question",Instant.now());
-                    kafkaEventProducer.publishViewCountEvent(viewCountEvent);
+                    kafkaEventProducer.publishViewCountEvent(
+                            new ViewCountEvent(id, "question", Instant.now())
+                    );
                 })
-                .doOnError(err -> System.out.println("Error fetching question: " + err));
+                .doOnError(error ->
+                        log.error("Failed to fetch question {}", id, error)
+                );
     }
 }

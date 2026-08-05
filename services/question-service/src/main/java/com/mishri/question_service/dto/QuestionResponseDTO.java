@@ -13,7 +13,10 @@ public class QuestionResponseDTO {
     private String id;
     private String title;
     private String content;
+    private Integer views;
+    private String createdBy;
     private Instant createdAt;
+
 
 //    public Instant getCreatedAt() {
 //        return createdAt;

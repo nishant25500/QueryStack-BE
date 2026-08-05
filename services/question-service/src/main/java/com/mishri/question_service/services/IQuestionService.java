@@ -11,7 +11,7 @@ import java.time.Instant;
 
 public interface IQuestionService {
 
-    public Mono<QuestionResponseDTO> createQuestion(QuestionRequestDTO request);
+    public Mono<QuestionResponseDTO> createQuestion(QuestionRequestDTO request,String email);
 
     public Flux<QuestionResponseDTO> searchQuestion(String searchParam, int pageNumber, int pageSize);
 
