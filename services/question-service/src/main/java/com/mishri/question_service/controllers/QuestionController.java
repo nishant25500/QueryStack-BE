@@ -103,8 +103,20 @@ public class QuestionController {
     }
 
     @DeleteMapping("/{id}")
-    public Mono<Void> deleteById(@PathVariable String id){
-        throw new UnsupportedOperationException("Not supported op");
+    public Mono<ResponseEntity<ApiResponse<Void>>> deleteQuestion(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+
+        return questionService.deleteQuestion(id, authentication.getName())
+                .thenReturn(
+                        ResponseEntity.ok(
+                                ApiResponse.<Void>builder()
+                                        .success(true)
+                                        .message("Question deleted successfully")
+                                        .build()
+                        )
+                );
     }
 
     @GetMapping("/search")
@@ -161,4 +173,6 @@ public class QuestionController {
                         )
                 );
     }
+
+
 }

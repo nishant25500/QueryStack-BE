@@ -24,4 +24,6 @@ public interface IQuestionService {
             QuestionRequestDTO request,
             String email
     );
+
+    Mono<Void> deleteQuestion(String id, String email);
 }

@@ -154,4 +154,29 @@ public class QuestionServiceImpl implements IQuestionService {
                 .doOnError(e ->
                         log.error("Failed to update question {}", id, e));
     }
+
+    @Override
+    public Mono<Void> deleteQuestion(String id, String email) {
+
+        return questionRepository.findById(id)
+                .switchIfEmpty(
+                        Mono.error(new QuestionNotFoundException("Question not found"))
+                )
+                .flatMap(question -> {
+
+                    if (!question.getCreatedBy().equals(email)) {
+                        return Mono.error(
+                                new QuestionAccessDeniedException(
+                                        "You are not allowed to delete this question."
+                                )
+                        );
+                    }
+
+                    return questionRepository.deleteById(id);
+                })
+                .doOnSuccess(unused ->
+                        log.info("Question {} deleted successfully", id))
+                .doOnError(error ->
+                        log.error("Failed to delete question {}", id, error));
+    }
 }
