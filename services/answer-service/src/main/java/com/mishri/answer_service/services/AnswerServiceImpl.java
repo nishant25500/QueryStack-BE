@@ -1,5 +1,6 @@
 package com.mishri.answer_service.services;
 
+import com.mishri.answer_service.clients.QuestionServiceClient;
 import com.mishri.answer_service.dto.request.CreateAnswerRequest;
 import com.mishri.answer_service.dto.request.UpdateAnswerRequest;
 import com.mishri.answer_service.dto.response.AnswerResponse;
@@ -21,6 +22,7 @@ public class AnswerServiceImpl implements IAnswerService {
 
     private final AnswerRepository answerRepository;
     private final AnswerMapper answerMapper;
+    private final QuestionServiceClient questionServiceClient;
 
     @Override
     public Mono<AnswerResponse> createAnswer(
@@ -28,14 +30,22 @@ public class AnswerServiceImpl implements IAnswerService {
             String email
     ) {
 
-        Answer answer = answerMapper.toModel(request, email);
+        return questionServiceClient.getQuestionById(request.getQuestionId())
 
-        return answerRepository.save(answer)
+                .flatMap(question -> {
+
+                    Answer answer = answerMapper.toModel(request, email);
+
+                    return answerRepository.save(answer);
+                })
+
                 .map(answerMapper::toResponse)
+
                 .doOnSuccess(a ->
                         log.info("Answer {} created successfully", a.getId()))
+
                 .doOnError(e ->
-                        log.error("Failed to create answer", e));
+                        log.warn("Failed to create answer {}", e.getMessage()));
     }
 
     @Override
@@ -83,8 +93,14 @@ public class AnswerServiceImpl implements IAnswerService {
                 .doOnSuccess(a ->
                         log.info("Answer {} updated successfully", a.getId()))
 
-                .doOnError(e ->
-                        log.error("Failed to update answer {}", answerId, e));
+                .doOnError(e -> {
+                    if (e instanceof AnswerNotFoundException
+                            || e instanceof AnswerAccessDeniedException) {
+                        log.warn("Failed to update answer {}: {}", answerId, e.getMessage());
+                    } else {
+                        log.error("Unexpected error updating answer {}", answerId, e);
+                    }
+                });
     }
 
     @Override
@@ -117,7 +133,13 @@ public class AnswerServiceImpl implements IAnswerService {
                 .doOnSuccess(v ->
                         log.info("Answer {} deleted successfully", answerId))
 
-                .doOnError(e ->
-                        log.error("Failed to delete answer {}", answerId, e));
+                .doOnError(e -> {
+                    if (e instanceof AnswerNotFoundException
+                            || e instanceof AnswerAccessDeniedException) {
+                        log.warn("Failed to delete answer {}: {}", answerId, e.getMessage());
+                    } else {
+                        log.error("Unexpected error deleting answer {}", answerId, e);
+                    }
+                });
     }
 }

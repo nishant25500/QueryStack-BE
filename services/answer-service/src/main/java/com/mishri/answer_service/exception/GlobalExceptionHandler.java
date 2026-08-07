@@ -37,6 +37,20 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(QuestionNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleQuestionNotFound(
+            QuestionNotFoundException ex
+    ) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(
+                        ApiResponse.<Void>builder()
+                                .success(false)
+                                .message(ex.getMessage())
+                                .build()
+                );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(
             Exception ex
@@ -46,7 +60,7 @@ public class GlobalExceptionHandler {
                 .body(
                         ApiResponse.<Void>builder()
                                 .success(false)
-                                .message(ex.getMessage())
+                                .message("Something went wrong!")
                                 .build()
                 );
     }
