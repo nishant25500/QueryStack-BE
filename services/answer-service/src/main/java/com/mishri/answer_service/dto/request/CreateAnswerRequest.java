@@ -8,7 +8,7 @@ import lombok.*;
 public class CreateAnswerRequest {
 
     @NotBlank(message = "Content is required")
-    @Size(min = 10, max = 5000, message = "Content must be between 10 and 5000 characters")
+    @Size(min = 10, max = 1000, message = "Content must be between 10 and 1000 characters")
     private String content;
 
     @NotBlank(message = "Question id is required")
